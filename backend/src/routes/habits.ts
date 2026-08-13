@@ -49,4 +49,41 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+router.post('/:id/log', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const habitId = Number(req.params.id);
+    if (!Number.isInteger(habitId) || habitId <= 0) {
+      res.status(400).json({ error: 'Invalid habit id' });
+      return;
+    }
+
+    const [habitRows] = await pool.query<HabitRow[]>('SELECT id FROM habits WHERE id = ? AND user_id = ?', [
+      habitId,
+      DEMO_USER_ID,
+    ]);
+    if (habitRows.length === 0) {
+      res.status(404).json({ error: 'Habit not found' });
+      return;
+    }
+
+    const today = getTodayDateString();
+
+    // Idempotent by construction: the UNIQUE KEY on (user_id, habit_id,
+    // log_date) makes a same-day repeat a no-op update rather than a new
+    // row. This avoids a racy "check if logged, then insert" — two
+    // concurrent requests can't both pass a check and both insert, because
+    // there's no check to race against.
+    await pool.query(
+      `INSERT INTO habit_logs (user_id, habit_id, log_date)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE log_date = log_date`,
+      [DEMO_USER_ID, habitId, today]
+    );
+
+    res.status(200).json({ habitId, logDate: today });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
