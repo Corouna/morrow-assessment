@@ -82,7 +82,25 @@ None of the `await` calls are wrapped in try/catch, and Express 4 doesn't automa
 
 **Fix:** wrap handlers in a try/catch that calls `next(err)`, or use a small async-handler wrapper utility.
 
-### 9. User email logged to console
+### 9. `INSERT` not awaited — client is told "success" before the write is confirmed
+```ts
+db.query(
+  `INSERT INTO habit_logs (...) VALUES (...)`
+);
+res.json({ success: true });
+```
+The insert call isn't `await`ed, so `res.json({ success: true })` fires without knowing whether the write actually completed — or even started. If it fails (a dropped connection, a constraint violation, anything), the client is still told it succeeded, and the rejected promise becomes an unhandled rejection nobody sees. This is distinct from #8: even wrapping the handler in try/catch wouldn't catch this, because nothing is awaiting the call for the catch to intercept.
+
+**Fix:** `await` the insert before responding, inside the same try/catch as the rest of the handler:
+```ts
+await db.query(
+  "INSERT INTO habit_logs (user_id, habit_id, value, log_date) VALUES (?, ?, ?, CURDATE())",
+  [userId, habitId, value]
+);
+res.json({ success: true });
+```
+
+### 10. User email logged to console
 ```ts
 console.log(`User ${email} logged habit ${habitId}: ${value}`);
 ```
@@ -90,7 +108,7 @@ Logging PII (email) to stdout is a privacy/compliance concern (GDPR/PDPA-style d
 
 **Fix:** don't log PII directly; log a user ID or hashed identifier if traceability is needed, and remove `email` from the payload entirely once real auth is in place.
 
-### 10. Direct state mutation in `logHabit`
+### 11. Direct state mutation in `logHabit`
 ```ts
 const updated = habits;
 updated.find((h) => h.id === habitId)!.logs.push({ ... });
@@ -109,7 +127,7 @@ setHabits(habits.map((h) =>
 
 ## Medium priority
 
-### 11. Filtered list goes stale
+### 12. Filtered list goes stale
 ```ts
 useEffect(() => { setFiltered(habits.filter(...)); }, [search]);
 ```
@@ -117,7 +135,7 @@ This only re-filters when `search` changes, not when `habits` updates — so log
 
 **Fix:** include `habits` in the dependency array, or better, derive `filtered` directly during render instead of storing it as separate state (`useMemo` if the filter is expensive enough to warrant memoizing).
 
-### 12. Unsafe non-null assertion
+### 13. Unsafe non-null assertion
 ```ts
 updated.find((h) => h.id === habitId)!
 ```
@@ -125,12 +143,24 @@ If the habit isn't found (stale state, race with a delete elsewhere), this throw
 
 **Fix:** check for `undefined` explicitly and handle the not-found case.
 
-### 13. No handling of the POST response
+### 14. No handling of the POST response
 The `logHabit` fetch call has no `.then`/`.catch` — the UI updates optimistically regardless of whether the request succeeds, and the `{ success: false, reason: "already logged today" }` response from the backend is silently discarded.
 
 **Fix:** handle the response, and roll back the optimistic update (or show an error) if the request fails or returns `success: false`.
 
-### 14. Fragile date comparison
+### 15. No error handling or loading state on the initial dashboard fetch
+```ts
+useEffect(() => {
+  fetch(`/api/dashboard?userId=${userId}`)
+    .then((res) => res.json())
+    .then((data) => setHabits(data));
+});
+```
+There's no `.catch()` here, and no loading state. If the request fails — network error, non-2xx response, malformed JSON — the rejection is unhandled and `habits` just stays `[]` forever, indistinguishable from "this user has no habits yet." The user has no signal that anything went wrong.
+
+**Fix:** add a `.catch()` (or wrap in try/catch with `async`/`await`) that sets an error state the component can render, and a loading flag shown until the first fetch resolves either way.
+
+### 16. Fragile date comparison
 ```ts
 habit.logs.some((log) => log.log_date.startsWith(day))
 ```
@@ -150,4 +180,4 @@ This assumes `log_date` is always an ISO string starting with `YYYY-MM-DD`. Depe
 
 ## Summary
 
-The most urgent fixes are the SQL injection, hardcoded credentials, and missing auth — any one of these is a genuine security incident waiting to happen in production. The `forEach`/async bug and the missing `useEffect` dependency array are also critical in a different way: they mean the feature doesn't actually work correctly even in the happy path, independent of security. I'd block this PR on items 1–6 before anything else; 7–10 should be fixed in the same PR or an immediate fast-follow; 11–14 are worth raising but wouldn't block a merge on their own.
+The most urgent fixes are the SQL injection, hardcoded credentials, and missing auth — any one of these is a genuine security incident waiting to happen in production. The `forEach`/async bug and the missing `useEffect` dependency array are also critical in a different way: they mean the feature doesn't actually work correctly even in the happy path, independent of security. I'd block this PR on items 1–6 before anything else; 7–11 should be fixed in the same PR or an immediate fast-follow; 12–16 are worth raising but wouldn't block a merge on their own.

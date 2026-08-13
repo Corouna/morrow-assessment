@@ -156,8 +156,15 @@ or overridden during the build.
 
 **Part 2 (`part2-code-review.md`)** was written with **Claude** via the
 claude.ai web interface (not Claude Code): the provided code sample was
-pasted in, and the resulting review was used as generated, with no edits to
-the findings, prioritization, or wording.
+pasted in and Claude produced the initial review. It was then cross-checked
+line-by-line against the actual sample code (with Claude Code, as a second
+pass) to verify every quoted snippet and finding was accurate — all 14
+original findings held up — and two additional issues the first pass missed
+were added: the unawaited `INSERT` in `POST /api/logs` that lets a failed
+write still report `success: true`, and the missing `.catch()`/loading state
+on the dashboard's initial fetch. So the review was AI-drafted, then
+AI-assisted-but-human-directed verification caught and closed two real gaps
+before submission.
 
 Both are disclosed here plainly, rather than glossed over, so this can be
 verified against the commit history and discussed candidly in the follow-up
