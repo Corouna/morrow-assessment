@@ -7,6 +7,10 @@ import { env } from './config/env';
 
 const app: Express = express();
 
+// Stop Express advertising itself via the X-Powered-By response header —
+// costs nothing and removes a trivial piece of stack-fingerprinting info.
+app.disable('x-powered-by');
+
 app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json());
 
