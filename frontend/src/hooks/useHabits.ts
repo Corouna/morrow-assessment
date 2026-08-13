@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
 import { getHabits, logHabitToday } from '../api/client';
 import { Habit } from '../types';
-import AddHabitForm from './AddHabitForm';
-import HabitCard from './HabitCard';
 
-function HabitDashboard() {
+interface UseHabitsResult {
+  habits: Habit[];
+  loading: boolean;
+  error: string | null;
+  loggingHabitId: number | null;
+  logError: string | null;
+  handleLogToday: (habitId: number) => Promise<void>;
+  refetchHabits: () => Promise<void>;
+}
+
+// Extracted from what used to be HabitDashboard so the form and the list can
+// live in different parts of the layout (sidebar vs. main) while sharing one
+// source of truth for habit state.
+export function useHabits(): UseHabitsResult {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,36 +82,5 @@ function HabitDashboard() {
     }
   }
 
-  if (loading) {
-    return <p className="status-message">Loading habits…</p>;
-  }
-
-  if (error) {
-    return <p className="status-message status-message--error">Couldn't load habits: {error}</p>;
-  }
-
-  return (
-    <div>
-      {logError && <p className="status-message status-message--error">{logError}</p>}
-
-      {habits.length === 0 ? (
-        <p className="status-message">No habits yet. Add one below to get started.</p>
-      ) : (
-        <div className="habit-grid">
-          {habits.map((habit) => (
-            <HabitCard
-              key={habit.id}
-              habit={habit}
-              onLogToday={handleLogToday}
-              isLogging={loggingHabitId === habit.id}
-            />
-          ))}
-        </div>
-      )}
-
-      <AddHabitForm onCreated={refetchHabits} />
-    </div>
-  );
+  return { habits, loading, error, loggingHabitId, logError, handleLogToday, refetchHabits };
 }
-
-export default HabitDashboard;

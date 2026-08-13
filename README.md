@@ -30,11 +30,11 @@ A small habit-tracking feature slice: log daily health habits, see a dashboard w
 
 ## Overview
 
-- **Dashboard** — shows every habit with its current streak (consecutive days logged) and weekly completion % (days logged in the last 7 / target days per week).
+- **Dashboard** — shows every habit with its current streak (consecutive days logged) and weekly completion % (days logged in the last 7 / target days per week), laid out as a grid in the main content area.
 - **Log today** — one click marks a habit complete for today. Clicking it twice in a day is safe: the second click is a harmless no-op, not a duplicate entry.
-- **Add a habit** — name + a target of how many days per week you're aiming for (1–7).
+- **Add a habit** — name + a target of how many days per week you're aiming for (1–7), via a form pinned in a sidebar so it stays reachable no matter how long the habit list gets — no scrolling past a growing list to find it.
 
-This is a small, deliberately un-layered feature slice, not a platform. Three endpoints, three components, no service/repository abstraction — see [Architecture](#architecture) for why that's the right call at this size, not an oversight.
+This is a small, deliberately un-layered feature slice, not a platform. Three endpoints, a handful of small components, no service/repository abstraction — see [Architecture](#architecture) for why that's the right call at this size, not an oversight.
 
 ---
 
@@ -186,9 +186,10 @@ backend/src/
 
 frontend/src/
 ├── api/          # typed fetch client (client.ts)
-├── components/   # HabitDashboard, HabitCard, AddHabitForm
+├── components/   # HabitList, HabitCard, AddHabitForm — presentational only
+├── hooks/        # useHabits: all habit state and API calls, no rendering
 ├── types/        # API response shape, hand-mirrored from the backend
-├── App.tsx
+├── App.tsx       # layout: header, sidebar (form), main (list)
 └── main.tsx
 ```
 
@@ -198,6 +199,7 @@ frontend/src/
 - `utils/date.ts` is pure functions with no I/O — `calculateStreak`, `calculateWeeklyCompletionPercent`, `getTodayDateString`, `toDateString`. That makes the one piece of actual business logic in this system trivially unit-testable in isolation, even though no test suite exists yet (see [Verification Approach](#verification-approach)).
 - The DB pool (`db/pool.ts`) is a plain module-level singleton, not injected through an interface or container. A DI framework here would be pure ceremony for one consumer.
 - Frontend types are a hand-kept mirror rather than a shared package — a deliberate, documented tradeoff (see [Scope and Non-Goals](#what-this-system-does-not-solve)), not a missed abstraction.
+- Habit state and the API calls that touch it live in one hook (`hooks/useHabits.ts`), not inside a single "dashboard" component. The form and the list needed to render in different parts of the layout (sidebar vs. main) once the form moved into a sticky sidebar, so the state had to live somewhere both could reach — a hook, rather than lifting it into `App.tsx` directly and prop-drilling, or introducing a context provider for two consumers.
 
 ### Tech Stack
 
@@ -293,7 +295,7 @@ A small, honest list of what happens when things don't go perfectly — delibera
 |---|---|
 | The database is unreachable mid-request | The error propagates to the centralized error handler, which logs the full error server-side and returns a generic `{ error: "Internal server error" }` with a 500 — never a stack trace to the client. Verified by stopping the MySQL container mid-request and confirming both halves. |
 | Two browser tabs log the same habit at nearly the same time | Both requests succeed harmlessly (idempotent by construction). Whichever tab's dashboard refetch resolves last shows the correct, current streak — there's no stale-write problem because every read recomputes from the DB, nothing is cached client-side. |
-| The frontend's optimistic UI update fires but the network request then fails | `HabitDashboard` rolls the `habits` array back to the pre-click snapshot and shows an inline error. The user sees the button return to "Log today," not a UI that's silently lying about state. |
+| The frontend's optimistic UI update fires but the network request then fails | `useHabits` rolls the `habits` array back to the pre-click snapshot and shows an inline error. The user sees the button return to "Log today," not a UI that's silently lying about state. |
 | A create-habit or log request is retried after a timeout | Create: safe against retries with the *same name* — the unique constraint returns 409 instead of a duplicate row. Not safe against a retry with a *different* name (e.g. a client-side auto-rename-on-conflict) creating a second, distinct habit; there's no idempotency key on this endpoint, since deduplicating genuinely-different-looking requests wasn't a stated requirement. Log: safe, per the row above. |
 | A request body is malformed JSON, or exceeds the 100kb default size limit | Returns `400 { error: "Invalid JSON in request body" }` or `413 { error: "Request body too large" }` respectively — not the generic 500. The error handler checks for the exact shapes `express.json()` throws for each case (`type: 'entity.parse.failed'` / `'entity.too.large'`), verified against the real error objects rather than assumed. |
 
