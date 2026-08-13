@@ -1,10 +1,174 @@
-/* Baseline reset only — the real styling pass happens once the dashboard
-   and forms exist (see step 12). */
 * {
   box-sizing: border-box;
 }
 
+:root {
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-border: #e0e0e3;
+  --color-text: #1f2124;
+  --color-text-muted: #6b6f76;
+  --color-primary: #2d6a4f;
+  --color-primary-hover: #235539;
+  --color-error: #b3261e;
+  --color-error-bg: #fbeceb;
+  --radius: 8px;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.app > h1 {
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.status-message {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.status-message--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.habit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.habit-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.habit-card__name {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.habit-card__target {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.habit-card__stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.habit-card__stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.habit-card__stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.habit-card__stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.habit-card__log-button {
+  margin-top: auto;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.habit-card__log-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.habit-card__log-button:disabled {
+  cursor: default;
+  background: var(--color-border);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.add-habit-form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 320px;
+}
+
+.add-habit-form__heading {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.add-habit-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.add-habit-form__field input {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.add-habit-form button[type='submit'] {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.add-habit-form button[type='submit']:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.add-habit-form button[type='submit']:disabled {
+  cursor: default;
+  background: var(--color-border);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
 }
