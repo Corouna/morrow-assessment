@@ -1,10 +1,14 @@
 import { Habit } from '../types';
 
 interface HabitCardProps {
-  habit: Habit;
+  readonly habit: Habit;
+  readonly onLogToday: (habitId: number) => void;
+  readonly isLogging: boolean;
 }
 
-function HabitCard({ habit }: HabitCardProps) {
+function HabitCard({ habit, onLogToday, isLogging }: HabitCardProps) {
+  const logButtonLabel = getLogButtonLabel(habit.loggedToday, isLogging);
+
   return (
     <div className="habit-card">
       <h2 className="habit-card__name">{habit.name}</h2>
@@ -21,9 +25,23 @@ function HabitCard({ habit }: HabitCardProps) {
         </div>
       </div>
 
-      {habit.loggedToday && <p className="habit-card__logged-today">Logged today</p>}
+      <button
+        type="button"
+        className="habit-card__log-button"
+        onClick={() => onLogToday(habit.id)}
+        disabled={habit.loggedToday || isLogging}
+      >
+        {logButtonLabel}
+      </button>
     </div>
   );
+}
+
+function getLogButtonLabel(loggedToday: boolean, isLogging: boolean): string {
+  if (loggedToday) {
+    return 'Logged today';
+  }
+  return isLogging ? 'Logging…' : 'Log today';
 }
 
 export default HabitCard;
