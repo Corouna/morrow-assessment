@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import { ResultSetHeader } from 'mysql2';
 import pool from '../db/pool';
 import { DEMO_USER_ID } from '../config/constants';
 import { HabitRow, HabitResponse, LogDateRow } from '../types';
@@ -44,6 +45,51 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     );
 
     res.json(habitsWithStats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+function validateNewHabitInput(name: unknown, targetPerWeek: unknown): string | null {
+  if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > 100) {
+    return 'name is required and must be 1-100 characters';
+  }
+  if (
+    typeof targetPerWeek !== 'number' ||
+    !Number.isInteger(targetPerWeek) ||
+    targetPerWeek < 1 ||
+    targetPerWeek > 7
+  ) {
+    return 'targetPerWeek is required and must be an integer between 1 and 7';
+  }
+  return null;
+}
+
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, targetPerWeek } = req.body as { name?: unknown; targetPerWeek?: unknown };
+
+    const validationError = validateNewHabitInput(name, targetPerWeek);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
+
+    const trimmedName = (name as string).trim();
+    const [result] = await pool.query<ResultSetHeader>(
+      'INSERT INTO habits (user_id, name, target_per_week) VALUES (?, ?, ?)',
+      [DEMO_USER_ID, trimmedName, targetPerWeek]
+    );
+
+    const newHabit: HabitResponse = {
+      id: result.insertId,
+      name: trimmedName,
+      targetPerWeek: targetPerWeek as number,
+      currentStreak: 0,
+      weeklyCompletionPercent: 0,
+      loggedToday: false,
+    };
+    res.status(201).json(newHabit);
   } catch (err) {
     next(err);
   }
