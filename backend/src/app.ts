@@ -1,10 +1,13 @@
+import cors from 'cors';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import pool from './db/pool';
 import habitsRouter from './routes/habits';
 import { errorHandler } from './middleware/errorHandler';
+import { env } from './config/env';
 
 const app: Express = express();
 
+app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json());
 
 app.use('/api/habits', habitsRouter);

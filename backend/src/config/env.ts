@@ -4,6 +4,7 @@ dotenv.config();
 
 interface EnvConfig {
   port: number;
+  corsOrigin: string;
   db: {
     host: string;
     port: number;
@@ -23,6 +24,7 @@ function requireEnv(name: string): string {
 
 export const env: EnvConfig = {
   port: Number(process.env.PORT) || 4000,
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   db: {
     host: requireEnv('DB_HOST'),
     port: Number(process.env.DB_PORT) || 3306,
