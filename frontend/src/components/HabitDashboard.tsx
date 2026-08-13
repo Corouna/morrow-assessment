@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getHabits, logHabitToday } from '../api/client';
 import { Habit } from '../types';
+import AddHabitForm from './AddHabitForm';
 import HabitCard from './HabitCard';
 
 function HabitDashboard() {
@@ -42,6 +43,11 @@ function HabitDashboard() {
     };
   }, []);
 
+  async function refetchHabits(): Promise<void> {
+    const refreshed = await getHabits();
+    setHabits(refreshed);
+  }
+
   async function handleLogToday(habitId: number): Promise<void> {
     const previousHabits = habits;
     setLogError(null);
@@ -56,8 +62,7 @@ function HabitDashboard() {
 
     try {
       await logHabitToday(habitId);
-      const refreshed = await getHabits();
-      setHabits(refreshed);
+      await refetchHabits();
     } catch (err) {
       setHabits(previousHabits);
       setLogError(err instanceof Error ? err.message : 'Failed to log habit. Please try again.');
@@ -92,6 +97,8 @@ function HabitDashboard() {
           ))}
         </div>
       )}
+
+      <AddHabitForm onCreated={refetchHabits} />
     </div>
   );
 }
