@@ -50,9 +50,11 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-function validateNewHabitInput(name: unknown, targetPerWeek: unknown): string | null {
+type ParsedHabitInput = { valid: true; name: string; targetPerWeek: number } | { valid: false; error: string };
+
+function parseNewHabitInput(name: unknown, targetPerWeek: unknown): ParsedHabitInput {
   if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > 100) {
-    return 'name is required and must be 1-100 characters';
+    return { valid: false, error: 'name is required and must be 1-100 characters' };
   }
   if (
     typeof targetPerWeek !== 'number' ||
@@ -60,31 +62,30 @@ function validateNewHabitInput(name: unknown, targetPerWeek: unknown): string | 
     targetPerWeek < 1 ||
     targetPerWeek > 7
   ) {
-    return 'targetPerWeek is required and must be an integer between 1 and 7';
+    return { valid: false, error: 'targetPerWeek is required and must be an integer between 1 and 7' };
   }
-  return null;
+  return { valid: true, name: name.trim(), targetPerWeek };
 }
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, targetPerWeek } = req.body as { name?: unknown; targetPerWeek?: unknown };
 
-    const validationError = validateNewHabitInput(name, targetPerWeek);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
+    const parsed = parseNewHabitInput(name, targetPerWeek);
+    if (!parsed.valid) {
+      res.status(400).json({ error: parsed.error });
       return;
     }
 
-    const trimmedName = (name as string).trim();
     const [result] = await pool.query<ResultSetHeader>(
       'INSERT INTO habits (user_id, name, target_per_week) VALUES (?, ?, ?)',
-      [DEMO_USER_ID, trimmedName, targetPerWeek]
+      [DEMO_USER_ID, parsed.name, parsed.targetPerWeek]
     );
 
     const newHabit: HabitResponse = {
       id: result.insertId,
-      name: trimmedName,
-      targetPerWeek: targetPerWeek as number,
+      name: parsed.name,
+      targetPerWeek: parsed.targetPerWeek,
       currentStreak: 0,
       weeklyCompletionPercent: 0,
       loggedToday: false,

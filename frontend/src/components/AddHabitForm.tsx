@@ -2,7 +2,7 @@ import { FormEvent, useState } from 'react';
 import { createHabit } from '../api/client';
 
 interface AddHabitFormProps {
-  readonly onCreated: () => void;
+  readonly onCreated: () => Promise<void>;
 }
 
 const MIN_TARGET = 1;
@@ -35,7 +35,7 @@ function AddHabitForm({ onCreated }: AddHabitFormProps) {
       await createHabit({ name: trimmedName, targetPerWeek: parsedTarget });
       setName('');
       setTargetPerWeek(String(MAX_TARGET));
-      onCreated();
+      await onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create habit. Please try again.');
     } finally {
