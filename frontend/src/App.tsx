@@ -1,8 +1,10 @@
+import HabitDashboard from './components/HabitDashboard';
+
 function App() {
   return (
     <div className="app">
       <h1>Habit Tracker</h1>
-      <p>Dashboard wiring lands in the next step.</p>
+      <HabitDashboard />
     </div>
   );
 }
