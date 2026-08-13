@@ -13,6 +13,11 @@
   --color-error: #b3261e;
   --color-error-bg: #fbeceb;
   --radius: 8px;
+  /* Shared by the sidebar, the add-habit form, and the habit-grid's column
+     minimum, so the form is never a different width than a habit card at
+     any viewport size — including the mobile breakpoint, where the sidebar
+     otherwise stretches to 100% and would balloon past a card's width. */
+  --card-width: 280px;
 }
 
 body {
@@ -46,7 +51,7 @@ body {
    gets — the whole point of moving it into a sidebar instead of stacking
    it below a potentially long, scrollable list. */
 .app-sidebar {
-  flex: 0 0 280px;
+  flex: 0 0 var(--card-width);
   position: sticky;
   top: 1.5rem;
 }
@@ -83,7 +88,7 @@ body {
 
 .habit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-width), 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -160,6 +165,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  width: 100%;
+  max-width: var(--card-width);
 }
 
 .add-habit-form__heading {
