@@ -67,6 +67,13 @@ function parseNewHabitInput(name: unknown, targetPerWeek: unknown): ParsedHabitI
   return { valid: true, name: name.trim(), targetPerWeek };
 }
 
+// mysql2 throws a plain object with a `code` property (not a typed class) for
+// driver-level errors. Narrowed via `unknown` + a runtime check rather than
+// `any`, so this stays honest about what's actually known about the error.
+function isDuplicateEntryError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'ER_DUP_ENTRY';
+}
+
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, targetPerWeek } = req.body as { name?: unknown; targetPerWeek?: unknown };
@@ -92,6 +99,13 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     };
     res.status(201).json(newHabit);
   } catch (err) {
+    // Relies on the DB's UNIQUE KEY on (user_id, name) — same "let the
+    // constraint be the source of truth" pattern as idempotent logging,
+    // rather than a racy "check if the name exists, then insert".
+    if (isDuplicateEntryError(err)) {
+      res.status(409).json({ error: 'A habit with this name already exists' });
+      return;
+    }
     next(err);
   }
 });

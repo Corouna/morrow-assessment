@@ -16,6 +16,7 @@ A small habit-tracking feature slice: log daily health habits, see a dashboard w
   - [Tech Stack](#tech-stack)
   - [Request Flow](#request-flow)
 - [Business Rules](#business-rules)
+  - [Unique Habit Names](#unique-habit-names)
   - [Idempotent Logging: Why It's Actually Safe](#idempotent-logging-why-its-actually-safe)
 - [Consistency & Failure Semantics](#consistency--failure-semantics)
 - [Assumptions and Tradeoffs](#assumptions-and-tradeoffs)
@@ -254,6 +255,13 @@ currentStreak           = consecutive days counting back from today
 - A habit can be logged at most once per calendar day.
 - Logging a habit that's already logged today is not an error — it's a no-op that returns the same result as the original log.
 - `targetPerWeek` is fixed at creation (1–7); there's no endpoint to change it.
+- A habit's name must be unique per user, case-insensitive — see below.
+
+### Unique Habit Names
+
+A habit name is unique per user, case- and whitespace-insensitive: `UNIQUE KEY uniq_user_habit_name (user_id, name)`, with an explicit `COLLATE utf8mb4_0900_ai_ci` on the table so `"Drink Water"` and `"drink water"` collide regardless of a given MySQL instance's default collation, and names are trimmed before insert so padding can't slip past it either. `POST /api/habits` catches the resulting `ER_DUP_ENTRY` error and returns `409 { error: "A habit with this name already exists" }`, rather than letting it fall through to the generic 500 handler.
+
+This wasn't part of the original design — it surfaced from testing the running app (creating "Drink Water" twice produced two visually identical cards on the dashboard, with no way to tell them apart). Fixed with the same pattern already established for idempotent logging: a DB constraint as the source of truth, not an application-level "check if the name exists, then insert."
 
 ### Idempotent Logging: Why It's Actually Safe
 
@@ -284,7 +292,7 @@ A small, honest list of what happens when things don't go perfectly — delibera
 | The database is unreachable mid-request | The error propagates to the centralized error handler, which logs the full error server-side and returns a generic `{ error: "Internal server error" }` with a 500 — never a stack trace to the client. Verified by stopping the MySQL container mid-request and confirming both halves. |
 | Two browser tabs log the same habit at nearly the same time | Both requests succeed harmlessly (idempotent by construction). Whichever tab's dashboard refetch resolves last shows the correct, current streak — there's no stale-write problem because every read recomputes from the DB, nothing is cached client-side. |
 | The frontend's optimistic UI update fires but the network request then fails | `HabitDashboard` rolls the `habits` array back to the pre-click snapshot and shows an inline error. The user sees the button return to "Log today," not a UI that's silently lying about state. |
-| A create-habit or log request is retried after a timeout | Create: a genuine duplicate habit would be created — there's no idempotency key on that endpoint, since a duplicate *habit* (as opposed to a duplicate *log*) wasn't a stated requirement. Log: safe, per the row above. |
+| A create-habit or log request is retried after a timeout | Create: safe against retries with the *same name* — the unique constraint returns 409 instead of a duplicate row. Not safe against a retry with a *different* name (e.g. a client-side auto-rename-on-conflict) creating a second, distinct habit; there's no idempotency key on this endpoint, since deduplicating genuinely-different-looking requests wasn't a stated requirement. Log: safe, per the row above. |
 
 ---
 
