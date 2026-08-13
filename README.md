@@ -23,7 +23,8 @@ A small habit-tracking feature slice: log daily health habits, see a dashboard w
 - [What Would Change for Production](#what-would-change-for-production)
 - [Verification Approach](#verification-approach)
 - [AI Tool Usage](#ai-tool-usage)
-  - [My Role](#my-role)
+  - [Part 1: The App](#part-1-the-app)
+  - [Part 2: Code Review](#part-2-code-review)
 
 ---
 
@@ -344,18 +345,30 @@ If this became a real codebase, the top priority from [What Would Change for Pro
 
 ## AI Tool Usage
 
-### My Role
+### Part 1: The App
+
+**My role**
 
 I set the scope and constraints before any code was written: a step-by-step build plan (one concern per commit, specific commit-message conventions, and non-negotiable code-quality rules — no `any` types, `Promise.all`/`map` instead of `forEach` with async callbacks, immutable React state updates, parameterized queries only, centralized error handling that never leaks a stack trace). I reviewed and explicitly approved every git operation individually — nothing was committed or pushed without a direct go-ahead from me, staged locally first and pushed to GitHub only once I'd confirmed it.
 
-I tested the running application myself in the browser rather than relying on reading the code, and that's how I caught a real gap that no one had specified either way: nothing stopped creating two habits with the exact same name, producing two visually identical dashboard cards. When given the tradeoff explicitly (block duplicates vs. document and allow them), I made the call to block them. I also cross-checked the finished Part 1 and Part 2 deliverables against the original assessment brief line by line to confirm nothing was missed, and separately asked for a SOLID/YAGNI/DRY/KISS pass over Part 1 specifically so I'd walk into the follow-up session with honest, defensible answers for every design decision — not be caught explaining code I didn't actually understand.
+I tested the running application myself in the browser rather than relying on reading the code, and that's how I caught a real gap that no one had specified either way: nothing stopped creating two habits with the exact same name, producing two visually identical dashboard cards. When given the tradeoff explicitly (block duplicates vs. document and allow them), I made the call to block them. I also cross-checked the finished deliverable against the original assessment brief line by line to confirm nothing was missed, and separately asked for a SOLID/YAGNI/DRY/KISS pass so I'd walk into the follow-up session with honest, defensible answers for every design decision — not be caught explaining code I didn't actually understand.
 
-For Part 2, I ran the tool myself: pasted the provided code sample into the claude.ai web interface, got the review back, and made the initial call to submit it as generated. Once it was cross-checked against the actual sample code afterward and two real gaps turned up — the unawaited `INSERT` in `POST /api/logs`, and the missing error/loading state on the dashboard's initial fetch — I decided to add both rather than leave the review as first submitted. Same standard I held Part 1 to: I own what's in this repository, not just what an AI produced for it.
+**AI's role**
 
-**Part 1 (this app)** was built with **Claude Code** (Anthropic), working from a detailed step-by-step brief: one step per commit, each scoped to a single concern (schema, one endpoint, one component, etc.). For every step, Claude Code ran real, live verification rather than just producing code that looked plausible — e.g. running the schema migration against an actual local MySQL 8 container (via Docker), curling each endpoint with both valid and invalid input, deliberately killing the database mid-request to confirm the error handler behaved correctly, and driving the running frontend with scripted headless-Chrome (Puppeteer) clicks to confirm the dashboard, log-today, and add-habit interactions actually work end-to-end, not just that they compile. Those verification steps and their results are recorded in each commit message.
+Built with **Claude Code** (Anthropic), working from a detailed step-by-step brief: one step per commit, each scoped to a single concern (schema, one endpoint, one component, etc.). For every step, Claude Code ran real, live verification rather than just producing code that looked plausible — e.g. running the schema migration against an actual local MySQL 8 container (via Docker), curling each endpoint with both valid and invalid input, deliberately killing the database mid-request to confirm the error handler behaved correctly, and driving the running frontend with scripted headless-Chrome (Puppeteer) clicks to confirm the dashboard, log-today, and add-habit interactions actually work end-to-end, not just that they compile. Those verification steps and their results are recorded in each commit message.
 
 Two rounds of correction happened after that initial build, both driven by review and testing rather than caught in the first pass. A self-review step (the "final consistency pass" commit) caught and fixed two real bugs: an unhandled promise rejection in `AddHabitForm` — a failed post-create refetch would have thrown silently instead of showing an error — and unnecessary `as` type assertions in habit-creation validation, replaced with a type-safe discriminated union. Later, testing the running app by hand surfaced a real product gap: nothing stopped creating two habits with the same name. That was fixed with a database constraint and a `409` response, which also removed a redundant index flagged during a subsequent SOLID/YAGNI review. Each of these is its own commit with its own live verification — see the commit history rather than taking this summary's word for it.
 
-**Part 2 (`part2-code-review.md`)** was written with **Claude** via the claude.ai web interface (not Claude Code): the provided code sample was pasted in and Claude produced the initial review. It was then cross-checked line-by-line against the actual sample code (with Claude Code, as a second pass) to verify every quoted snippet and finding was accurate — all 14 original findings held up — and two additional issues the first pass missed were added: the unawaited `INSERT` in `POST /api/logs` that lets a failed write still report `success: true`, and the missing `.catch()`/loading state on the dashboard's initial fetch. So the review was AI-drafted, then AI-assisted-but-human-directed verification caught and closed two real gaps before submission.
+### Part 2: Code Review
 
-Both are disclosed here plainly, rather than glossed over, so this can be verified against the commit history and discussed candidly in the follow-up session.
+**My role**
+
+I ran the tool myself: pasted the provided code sample into the claude.ai web interface, got the review back, and made the initial call to submit it as generated. When a later cross-check found two real gaps (see below), I decided to add them rather than leave the review as first submitted. Same standard I held Part 1 to: I own what's in this repository, not just what an AI produced for it.
+
+**AI's role**
+
+`part2-code-review.md` was written with **Claude** via the claude.ai web interface (not Claude Code): the provided code sample was pasted in and Claude produced the initial review. It was then cross-checked line-by-line against the actual sample code (with Claude Code, as a second pass) to verify every quoted snippet and finding was accurate — all 14 original findings held up — and two additional issues the first pass missed were added: the unawaited `INSERT` in `POST /api/logs` that lets a failed write still report `success: true`, and the missing `.catch()`/loading state on the dashboard's initial fetch. So the review was AI-drafted, then AI-assisted-but-human-directed verification caught and closed two real gaps before submission.
+
+---
+
+Both parts are disclosed here plainly, rather than glossed over, so this can be verified against the commit history and discussed candidly in the follow-up session.
