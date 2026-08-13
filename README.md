@@ -140,19 +140,25 @@ to `http://localhost:5173`.
 
 ## AI tool usage
 
-This project was built with **Claude Code** (Anthropic), working from a
-detailed step-by-step brief: one step per commit, each scoped to a single
-concern (schema, one endpoint, one component, etc.). For every step, Claude
-Code ran real, live verification rather than just producing code that looked
-plausible — e.g. running the schema migration against an actual local MySQL
-8 container (via Docker), curling each endpoint with both valid and invalid
-input, deliberately killing the database mid-request to confirm the error
-handler behaved correctly, and driving the running frontend with scripted
-headless-Chrome (Puppeteer) clicks to confirm the dashboard, log-today, and
-add-habit interactions actually work end-to-end, not just that they compile.
-Those verification steps and their results are recorded in each commit
-message.
+**Part 1 (this app)** was built with **Claude Code** (Anthropic), working
+from a detailed step-by-step brief: one step per commit, each scoped to a
+single concern (schema, one endpoint, one component, etc.). For every step,
+Claude Code ran real, live verification rather than just producing code that
+looked plausible — e.g. running the schema migration against an actual local
+MySQL 8 container (via Docker), curling each endpoint with both valid and
+invalid input, deliberately killing the database mid-request to confirm the
+error handler behaved correctly, and driving the running frontend with
+scripted headless-Chrome (Puppeteer) clicks to confirm the dashboard,
+log-today, and add-habit interactions actually work end-to-end, not just that
+they compile. Those verification steps and their results are recorded in
+each commit message. No AI-generated code in this repository was corrected
+or overridden during the build.
 
-No AI-generated code in this repository was corrected or overridden during
-the build — this README documents that plainly so it can be verified
-against the commit history, rather than glossed over.
+**Part 2 (`part2-code-review.md`)** was written with **Claude** via the
+claude.ai web interface (not Claude Code): the provided code sample was
+pasted in, and the resulting review was used as generated, with no edits to
+the findings, prioritization, or wording.
+
+Both are disclosed here plainly, rather than glossed over, so this can be
+verified against the commit history and discussed candidly in the follow-up
+session.
